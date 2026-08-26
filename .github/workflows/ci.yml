@@ -21,6 +21,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Configure Git Line Endings
+        run: |
+          git config core.autocrlf false
+          git reset --hard HEAD
+
       - name: Check Node.js
         run: node --version
 
