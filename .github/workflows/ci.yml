@@ -3,7 +3,9 @@ name: CI Pipeline
 on:
   push:
     branches:
+      - main
       - "feature/**"
+
   pull_request:
     branches:
       - main
@@ -47,19 +49,23 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-       sonarqube:
-        name: SonarQube Job
-        needs: test
-        runs-on: self-hosted
+  sonarqube:
+    name: SonarQube Job
+    needs: test
+    runs-on: self-hosted
 
-        steps:
-          - name: Checkout Code
-            uses: actions/checkout@v4
+    defaults:
+      run:
+        shell: cmd
 
-          - name: Install Dependencies
-            run: npm ci
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-          - name: SonarQube Scan
-            env:
-              SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-            run: npx sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.token=%SONAR_TOKEN%
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: npx sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.token=%SONAR_TOKEN%
