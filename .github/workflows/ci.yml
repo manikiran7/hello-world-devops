@@ -13,8 +13,12 @@ jobs:
     name: Test Job
     runs-on: self-hosted
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Check Node.js
