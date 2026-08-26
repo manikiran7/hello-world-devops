@@ -15,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        shell: bash
+        shell: cmd
 
     steps:
       - name: Checkout Code
@@ -23,6 +23,9 @@ jobs:
 
       - name: Check Node.js
         run: node --version
+
+      - name: Check npm
+        run: npm --version
 
       - name: Install Dependencies
         run: npm ci
