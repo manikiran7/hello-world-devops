@@ -38,6 +38,9 @@ jobs:
       - name: Unit Test
         run: npm test
 
+      - name: Biome Format
+        run: npx biome format . --write
+
       - name: Biome Check
         run: npm run format:check
 
