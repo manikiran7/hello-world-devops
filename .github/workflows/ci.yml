@@ -182,14 +182,27 @@ jobs:
         with:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: 1
-  docker-build:
-    name: Docker Build
+  docker:
+    name: Docker Build and Push
     needs: test
     runs-on: self-hosted
+
+    defaults:
+      run:
+        shell: cmd
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Docker Login
+        run: docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Docker Build
         run: docker build -t mkr05/hello-world-devops:latest .
+
+      - name: Docker Push
+        run: docker push mkr05/hello-world-devops:latest
