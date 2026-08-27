@@ -181,7 +181,6 @@ jobs:
         uses: semgrep/semgrep-action@v1
         with:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: 1
   docker:
     name: Docker Build and Push
     needs: test
@@ -206,6 +205,9 @@ jobs:
 
       - name: Docker Build
         run: docker build -t mkr05/hello-world-devops:%IMAGE_TAG% .
+
+      - name: Docker Scout
+        run: docker scout cves mkr05/hello-world-devops:%IMAGE_TAG%
 
       - name: Docker Push
         run: docker push mkr05/hello-world-devops:%IMAGE_TAG%
