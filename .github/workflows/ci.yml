@@ -217,8 +217,7 @@ jobs:
       - name: Update Helm Image Tag
         shell: cmd
         run: |
-          powershell.exe -ExecutionPolicy Bypass -Command "$file='helm/hello-world-devops/values.yaml'; $content=Get-Content $file -Raw; $content=$content -replace 'tag:\s*.*', 'tag: ""%IMAGE_TAG%""'; Set-Content $file $content"
-
+          powershell.exe -ExecutionPolicy Bypass -Command "$file='helm/hello-world-devops/values.yaml'; $content=Get-Content $file -Raw; $content=$content -replace '^\s*tag:.*$', '  tag: ""%IMAGE_TAG%""'; [System.IO.File]::WriteAllText($file, $content)"
       - name: Commit Helm Image Tag
         run: |
           git config user.name "github-actions[bot]"
