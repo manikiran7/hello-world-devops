@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: mkr05/hello-world-devops
-  tag: "CHANGE_ME"
+  tag: d2c2bcc"
   pullPolicy: IfNotPresent
 
 service:
