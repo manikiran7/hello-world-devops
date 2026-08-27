@@ -17,7 +17,7 @@ jobs:
 
   test:
     name: Test Job
-    runs-on: [self-hosted, runner-1]
+    runs-on: [self-hosted, ATM-IT-PC-51]
 
     env:
       GIT_CONFIG_COUNT: 1
@@ -250,7 +250,7 @@ jobs:
 
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
-    runs-on: [self-hosted, runner-1]
+    runs-on: [self-hosted, ATM-IT-PC-51]
 
     defaults:
       run:
