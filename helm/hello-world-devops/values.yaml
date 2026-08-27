@@ -2,10 +2,11 @@ replicaCount: 1
 
 image:
   repository: mkr05/hello-world-devops
-  tag: "d2c2bcc"
+  tag: "2bcdb44
   pullPolicy: IfNotPresent
 
 service:
   type: NodePort
   port: 3000
   targetPort: 3000
+
