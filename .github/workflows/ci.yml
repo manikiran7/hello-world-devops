@@ -201,8 +201,11 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set Image Tag
+        run: echo IMAGE_TAG=%GITHUB_SHA:~0,7%>>%GITHUB_ENV%
+
       - name: Docker Build
-        run: docker build -t mkr05/hello-world-devops:latest .
+        run: docker build -t mkr05/hello-world-devops:%IMAGE_TAG% .
 
       - name: Docker Push
-        run: docker push mkr05/hello-world-devops:latest
+        run: docker push mkr05/hello-world-devops:%IMAGE_TAG%
