@@ -215,8 +215,12 @@ jobs:
         run: docker push mkr05/hello-world-devops:%IMAGE_TAG%
 
       - name: Update Helm Image Tag
+        shell: powershell
         run: |
-          sed -i "s/^  tag:.*/  tag: \"%IMAGE_TAG%\"/" helm/hello-world-devops/values.yaml
+          $file = "helm/hello-world-devops/values.yaml"
+          $content = Get-Content $file -Raw
+          $content = $content -replace 'tag:\s*.*', 'tag: "%IMAGE_TAG%"'
+          Set-Content $file $content
 
       - name: Commit Helm Image Tag
         run: |
