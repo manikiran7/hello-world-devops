@@ -211,3 +211,14 @@ jobs:
 
       - name: Docker Push
         run: docker push mkr05/hello-world-devops:%IMAGE_TAG%
+      - name: Update Helm Image Tag
+        run: |
+          powershell -Command "(Get-Content helm/hello-world-devops/values.yaml) -replace 'tag: \"CHANGE_ME\"', 'tag: \"%IMAGE_TAG%\"' | Set-Content helm/hello-world-devops/values.yaml"
+
+      - name: Commit and Push Helm Change
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add helm/hello-world-devops/values.yaml
+          git commit -m "Update image tag to %IMAGE_TAG%"
+          git push origin HEAD:%GITHUB_REF_NAME%
