@@ -84,48 +84,46 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: npx sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.login=%SONAR_TOKEN%
 
+    codeql:
+      name: CodeQL Job
+      needs: test
+      runs-on: [self-hosted, runner-3]
 
+      permissions:
+        contents: read
+        security-events: write
 
-  codeql:
-    name: CodeQL Job
-    needs: test
-    runs-on: [self-hosted, runner-3]
+      defaults:
+        run:
+          shell: cmd
 
-    permissions:
-      contents: read
-      security-events: write
+      steps:
+        - name: Checkout Code
+          uses: actions/checkout@v4
 
-    env:
-      PATH: C:\Users\manikiran\tools\codeql\codeql;%PATH%
+        - name: Add CodeQL to PATH
+          run: echo C:\Users\manikiran\tools\codeql\codeql>>%GITHUB_PATH%
 
-    defaults:
-      run:
-        shell: cmd
+        - name: Check CodeQL
+          run: codeql version
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+        - name: Check CodeQL Languages
+          run: codeql resolve languages
 
-      - name: Check CodeQL
-        run: codeql version
+        - name: Initialize CodeQL Database
+          run: |
+            if exist codeql-db rmdir /s /q codeql-db
+            codeql database create codeql-db --language=javascript-typescript --source-root=.
 
-      - name: Check CodeQL Languages
-        run: codeql resolve languages
+        - name: Analyze CodeQL Database
+          run: |
+            codeql database analyze codeql-db --format=sarif-latest --output=results.sarif C:\Users\manikiran\tools\codeql\codeql-queries\javascript\ql\src\codeql-suites\javascript-security-and-quality.qls
 
-      - name: Initialize CodeQL Database
-        run: |
-          if exist codeql-db rmdir /s /q codeql-db
-          codeql database create codeql-db --language=javascript-typescript --source-root=.
-
-      - name: Analyze CodeQL Database
-        run: |
-          codeql database analyze codeql-db --format=sarif-latest --output=results.sarif C:\Users\manikiran\tools\codeql\codeql-queries\javascript\ql\src\codeql-suites\javascript-security-and-quality.qls
-
-      - name: Upload CodeQL Results
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: results.sarif
+        - name: Upload CodeQL Results
+          if: always()
+          uses: github/codeql-action/upload-sarif@v4
+          with:
+            sarif_file: results.sarif
 
 
   trivy:
@@ -137,9 +135,6 @@ jobs:
       contents: read
       security-events: write
 
-    env:
-      PATH: C:\Users\manikiran\Desktop\trivy;%PATH%
-
     defaults:
       run:
         shell: cmd
@@ -147,6 +142,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Add Trivy to PATH
+        run: echo C:\Users\manikiran\Desktop\trivy>>%GITHUB_PATH%
 
       - name: Check Trivy
         run: trivy --version
