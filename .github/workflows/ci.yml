@@ -95,6 +95,9 @@ jobs:
       contents: read
       security-events: write
 
+    env:
+      PATH: C:\Users\manikiran\tools\codeql\codeql;%PATH%
+
     defaults:
       run:
         shell: cmd
@@ -133,6 +136,9 @@ jobs:
     permissions:
       contents: read
       security-events: write
+
+    env:
+      PATH: C:\Users\manikiran\Desktop\trivy;%PATH%
 
     defaults:
       run:
@@ -204,6 +210,9 @@ jobs:
     permissions:
       contents: read
       security-events: write
+
+    env:
+      PATH: C:\Users\manikiran\AppData\Local\Programs\Python\Python313\Scripts;%PATH%
 
     defaults:
       run:
