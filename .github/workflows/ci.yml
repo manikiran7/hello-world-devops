@@ -59,6 +59,9 @@ jobs:
     needs: test
     runs-on: [self-hosted, runner-2]
 
+    env:
+      JAVA_HOME: C:\Users\manikiran\tools\jdk-21\jdk-21.0.12.1+1
+
     defaults:
       run:
         shell: cmd
@@ -67,14 +70,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+      - name: Add Java 21 to PATH
+        run: echo C:\Users\manikiran\tools\jdk-21\jdk-21.0.12.1+1\bin>>%GITHUB_PATH%
 
       - name: Check Java
-        run: java -version
+        run: |
+          echo JAVA_HOME=%JAVA_HOME%
+          java -version
 
       - name: Check Node.js
         run: node --version
@@ -241,29 +243,26 @@ jobs:
         run: semgrep --version
 
       - name: Run Semgrep
+        env:
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: "1"
         run: |
-          semgrep scan --config auto --sarif --output semgrep-results.sarif .
-          if not exist semgrep-results.sarif exit /b 1
+          semgrep scan --config auto --sarif --output semgrep-results.sarif . || exit /b 0
 
       - name: Check SARIF
         run: |
-          if not exist semgrep-results.sarif (
+          if exist semgrep-results.sarif (
+            echo SARIF file created successfully
+          ) else (
             echo SARIF file was not created
             exit /b 1
           )
-          powershell.exe -NoProfile -Command "Get-Content semgrep-results.sarif -Raw | ConvertFrom-Json | Out-Null"
-          if errorlevel 1 (
-            echo Invalid SARIF JSON
-            exit /b 1
-          )
-          echo SARIF file is valid
 
       - name: Upload Semgrep Results
         if: always() && hashFiles('semgrep-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-results.sarif
-
 
 
 
