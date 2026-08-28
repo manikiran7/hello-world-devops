@@ -67,6 +67,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Check Java
         run: java -version
 
@@ -118,7 +124,12 @@ jobs:
 
       - name: Analyze CodeQL Database
         run: |
-          codeql database analyze codeql-db --format=sarif-latest --output=results.sarif --threads=0 --ram=4096
+          codeql database analyze codeql-db ^
+            --format=sarif-latest ^
+            --output=results.sarif ^
+            --threads=0 ^
+            --ram=4096 ^
+            C:\Users\manikiran\tools\codeql-queries\javascript\ql\src\codeql-suites\javascript-security-and-quality.qls
 
       - name: Upload CodeQL Results
         if: always() && hashFiles('results.sarif') != ''
@@ -145,7 +156,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Add Trivy to PATH
-        run: echo C:\Users\manikiran\Desktop\trivy>>%GITHUB_PATH%
+        run: echo C:\Users\manikiran\tools\trivy>>%GITHUB_PATH%
 
       - name: Check Trivy
         run: trivy --version
@@ -176,6 +187,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Add Snyk to PATH
+        run: echo C:\Users\manikiran\AppData\Roaming\npm>>%GITHUB_PATH%
 
       - name: Check Node.js
         run: node --version
@@ -228,7 +242,21 @@ jobs:
 
       - name: Run Semgrep
         run: |
-          semgrep scan --config auto --sarif --output semgrep-results.sarif . || exit /b 0
+          semgrep scan --config auto --sarif --output semgrep-results.sarif .
+          if not exist semgrep-results.sarif exit /b 1
+
+      - name: Check SARIF
+        run: |
+          if not exist semgrep-results.sarif (
+            echo SARIF file was not created
+            exit /b 1
+          )
+          powershell.exe -NoProfile -Command "Get-Content semgrep-results.sarif -Raw | ConvertFrom-Json | Out-Null"
+          if errorlevel 1 (
+            echo Invalid SARIF JSON
+            exit /b 1
+          )
+          echo SARIF file is valid
 
       - name: Upload Semgrep Results
         if: always() && hashFiles('semgrep-results.sarif') != ''
@@ -295,4 +323,3 @@ jobs:
           git commit -m "Update image tag to %IMAGE_TAG%" || echo No changes to commit
           git push origin main
 
-          
