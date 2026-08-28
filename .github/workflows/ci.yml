@@ -294,3 +294,5 @@ jobs:
           git add helm/hello-world-devops/values.yaml
           git commit -m "Update image tag to %IMAGE_TAG%" || echo No changes to commit
           git push origin main
+
+          
