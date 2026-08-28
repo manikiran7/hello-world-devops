@@ -94,7 +94,7 @@ jobs:
 
 
   codeql:
-    name: CodeQL Job
+    name: CodeQL Security Scan
     needs: test
     runs-on: [self-hosted, runner-3]
 
@@ -102,42 +102,22 @@ jobs:
       contents: read
       security-events: write
 
-    defaults:
-      run:
-        shell: cmd
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Add CodeQL to PATH
-        run: echo C:\Users\manikiran\tools\codeql\codeql>>%GITHUB_PATH%
-
-      - name: Check CodeQL
-        run: codeql version
-
-      - name: Check CodeQL Languages
-        run: codeql resolve languages
-
-      - name: Initialize CodeQL Database
-        run: |
-          if exist codeql-db rmdir /s /q codeql-db
-          codeql database create codeql-db --language=javascript-typescript --source-root=.
-
-      - name: Analyze CodeQL Database
-        run: |
-          codeql database analyze codeql-db ^
-            --format=sarif-latest ^
-            --output=results.sarif ^
-            --threads=0 ^
-            --ram=4096 ^
-            C:\Users\manikiran\tools\codeql-queries\javascript\ql\src\codeql-suites\javascript-security-and-quality.qls
-
-      - name: Upload CodeQL Results
-        if: always() && hashFiles('results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
         with:
-          sarif_file: results.sarif
+          languages: javascript-typescript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Analyze CodeQL
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:javascript-typescript"
 
 
   trivy:
