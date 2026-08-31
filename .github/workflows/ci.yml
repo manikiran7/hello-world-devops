@@ -55,7 +55,7 @@ jobs:
         run: npm run lint
 
       - name: Install Gitleaks
-        shell: powershell -ExecutionPolicy Bypass
+        shell: powershell -ExecutionPolicy Bypass {0}
         run: |
           $version = "8.30.1"
           $url = "https://github.com/gitleaks/gitleaks/releases/download/v$version/gitleaks_${version}_windows_x64.zip"
@@ -78,14 +78,11 @@ jobs:
 
           Write-Host "Checking Gitleaks installation..."
 
-          & "$install\gitleaks.exe" version 
-
+          & "$install\gitleaks.exe" version
 
       - name: Gitleaks Scan
-        shell: powershell -ExecutionPolicy Bypass
-        run: |
-          gitleaks detect --source . --verbose --redact
-
+        shell: cmd
+        run: gitleaks detect --source . --verbose --redact
 
   sonarqube:
     name: SonarQube Job
