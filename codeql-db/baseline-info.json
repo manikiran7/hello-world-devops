@@ -1,0 +1,1 @@
+{"languages":{"actions":{"displayName":"GitHub Actions","files":[".github/workflows/ci.yml"],"linesOfCode":181,"name":"actions"},"javascript":{"displayName":"JavaScript/TypeScript","files":["app.js","test/app.test.js","server.js","eslint.config.js"],"linesOfCode":28,"name":"javascript"}}}

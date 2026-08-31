@@ -1,0 +1,13 @@
+---
+sourceLocationPrefix: C:\Users\manikiran\Desktop\hello-world-devops
+baselineLinesOfCode: 28
+unicodeNewlines: true
+columnKind: utf16
+primaryLanguage: javascript
+creationMetadata:
+  sha: 5dc07d2c712e76586088b41858a8cd9c79e1e59e
+  cliVersion: 2.26.4
+  creationTime: 2026-08-27T14:35:41.375884600Z
+overlayBaseDatabase: false
+overlayDatabase: false
+finalised: true
