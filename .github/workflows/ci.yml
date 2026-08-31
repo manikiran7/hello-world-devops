@@ -54,6 +54,35 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: Install Gitleaks
+        shell: powershell -ExecutionPolicy Bypass {0}
+        run: |
+          $version = "8.30.1"
+          $url = "https://github.com/gitleaks/gitleaks/releases/download/v$version/gitleaks_${version}_windows_x64.zip"
+          $zip = "$env:RUNNER_TEMP\gitleaks.zip"
+          $install = "$env:RUNNER_TEMP\gitleaks"
+
+          Write-Host "Downloading Gitleaks $version..."
+
+          Invoke-WebRequest -Uri $url -OutFile $zip
+
+          if (Test-Path $install) {
+              Remove-Item $install -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Path $install | Out-Null
+
+          Expand-Archive -Path $zip -DestinationPath $install -Force
+
+          "$install" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+
+          Write-Host "Checking Gitleaks installation..."
+
+          & "$install\gitleaks.exe" version
+
+      - name: Gitleaks Scan
+        shell: cmd
+        run: gitleaks detect --source . --verbose --redact
 
   sonarqube:
     name: SonarQube Job
