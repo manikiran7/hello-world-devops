@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: mkr05/hello-world-devops
-  tag: "4047d4e"
+  tag: "ea91fdf"
   pullPolicy: IfNotPresent
 
 service:
