@@ -78,7 +78,7 @@ jobs:
 
           Write-Host "Checking Gitleaks installation..."
 
-          & "$install\gitleaks.exe" version
+          & "$install\gitleaks.exe" version 
 
       - name: Gitleaks Scan
         shell: cmd
