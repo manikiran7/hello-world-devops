@@ -33,9 +33,6 @@ jobs:
       - name: Docker Build
         run: docker build -t mkr05/hello-world-devops:%IMAGE_TAG% .
 
-      - name: Docker Scout Scan
-        run: docker scout cves mkr05/hello-world-devops:%IMAGE_TAG%
-
       - name: Docker Push
         run: docker push mkr05/hello-world-devops:%IMAGE_TAG%
 
