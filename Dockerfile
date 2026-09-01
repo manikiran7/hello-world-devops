@@ -1,16 +1,20 @@
-FROM node:24-alpine
+FROM node:22-alpine
+
+RUN apk add --no-cache dumb-init
+
+ENV NODE_ENV=production
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev && npm cache clean --force
 
-COPY server.js ./
-COPY app.js ./
-
-EXPOSE 3000
+COPY --chown=node:node server.js ./
+COPY --chown=node:node app.js ./
 
 USER node
 
-CMD ["node", "server.js"]
+EXPOSE 3000
+
+CMD ["dumb-init", "node", "server.js"]s
