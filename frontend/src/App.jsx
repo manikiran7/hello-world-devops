@@ -7,21 +7,22 @@ function App() {
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
-async function loadUsers() {
-    try {
-        const response = await fetch("/api/users");
+    async function loadUsers() {
+        try {
+            const response = await fetch("/api/users");
 
-        if (!response.ok) {
-            throw new Error("Failed to fetch users");
+            if (!response.ok) {
+                throw new Error("Failed to fetch users");
+            }
+
+            const data = await response.json();
+            setUsers(data);
+        } catch (error) {
+            console.error(error);
+            setMessage("Failed to load users");
         }
-
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error(error);
-        throw error;
     }
-}
+
     async function createUser(event) {
         event.preventDefault();
 
@@ -65,25 +66,9 @@ async function loadUsers() {
         }
     }
 
-useEffect(() => {
-    async function fetchUsers() {
-        try {
-            const response = await fetch("/api/users");
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch users");
-            }
-
-            const data = await response.json();
-            setUsers(data);
-        } catch (error) {
-            console.error(error);
-            setMessage("Failed to load users");
-        }
-    }
-
-    fetchUsers();
-}, []);
+    useEffect(() => {
+        loadUsers();
+    }, []);
 
     return (
         <div style={styles.container}>

@@ -9,9 +9,9 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-	res.json({
-		status: "ok",
-	});
+    res.json({
+        status: "ok",
+    });
 });
 
 app.use("/api/users", userRoutes);
