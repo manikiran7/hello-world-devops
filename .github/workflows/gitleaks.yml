@@ -1,0 +1,23 @@
+name: Reusable Gitleaks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: Gitleaks Scan
+    runs-on: [self-hosted, runner-1]
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Gitleaks Scan
+        run: gitleaks detect --source . --verbose --redact

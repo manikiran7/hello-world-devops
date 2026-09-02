@@ -1,4 +1,4 @@
-name: CD Release & Manifest Update
+name: CD Release
 
 on:
   push:
@@ -8,13 +8,19 @@ on:
 permissions:
   contents: write
 
+env:
+  IMAGE_NAME: mkr05/hello-world-devops
+
 jobs:
+
   docker-release:
-    name: Docker Build, Push & Manifest Update
+    name: Docker Build, Scan, Push & Manifest Update
     runs-on: [self-hosted, runner-1]
+
     defaults:
       run:
         shell: cmd
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -22,30 +28,39 @@ jobs:
           fetch-depth: 0
 
       - name: Docker Login
-        run: docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%
 
       - name: Set Image Tag
         run: echo IMAGE_TAG=%GITHUB_SHA:~0,7%>>%GITHUB_ENV%
 
       - name: Docker Build
-        run: docker build -t mkr05/hello-world-devops:%IMAGE_TAG% .
+        run: docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
+
+      - name: Check Docker Scout
+        run: docker scout version
+
+      - name: Docker Scout Scan
+        run: docker scout cves %IMAGE_NAME%:%IMAGE_TAG%
 
       - name: Docker Push
-        run: docker push mkr05/hello-world-devops:%IMAGE_TAG%
+        run: docker push %IMAGE_NAME%:%IMAGE_TAG%
 
       - name: Update Helm Image Tag
-        shell: cmd
         run: |
           powershell.exe -ExecutionPolicy Bypass -Command "$file='helm/hello-world-devops/values.yaml'; $tag=$env:IMAGE_TAG; $content=Get-Content $file -Raw; $content=$content -replace '(?m)^\s*tag:\s*.*$', ('  tag: ' + [char]34 + $tag + [char]34); [System.IO.File]::WriteAllText($file, $content)"
 
-      - name: Commit & Push Helm Updates
+      - name: Commit Helm Update
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add helm/hello-world-devops/values.yaml
+
           git commit -m "Update image tag to %IMAGE_TAG% [skip ci]" || echo No changes to commit
+
           git pull --rebase origin main
+
           git push origin main

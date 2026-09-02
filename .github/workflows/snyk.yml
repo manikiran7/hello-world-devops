@@ -1,0 +1,48 @@
+name: Reusable Snyk
+
+on:
+  workflow_call:
+    secrets:
+      SNYK_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  snyk:
+    name: Snyk
+    runs-on: [self-hosted, runner-5]
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Add Snyk to PATH
+        run: echo C:\Users\manikiran\AppData\Roaming\npm>>%GITHUB_PATH%
+
+      - name: Check Node.js
+        run: node --version
+
+      - name: Check npm
+        run: npm --version
+
+      - name: Check Snyk
+        run: snyk --version
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Snyk Test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk test --severity-threshold=high
+
+      - name: Snyk Monitor
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk monitor

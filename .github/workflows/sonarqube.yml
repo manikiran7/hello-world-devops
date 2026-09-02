@@ -1,0 +1,45 @@
+name: Reusable SonarQube
+
+on:
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  sonarqube:
+    name: SonarQube Scan
+    runs-on: [self-hosted, runner-2]
+
+    env:
+      JAVA_HOME: C:\Users\manikiran\tools\jdk-21\jdk-21.0.12.1+1
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Add Java 21 to PATH
+        run: echo C:\Users\manikiran\tools\jdk-21\jdk-21.0.12.1+1\bin>>%GITHUB_PATH%
+
+      - name: Check Java
+        run: |
+          echo JAVA_HOME=%JAVA_HOME%
+          java -version
+
+      - name: Check Node.js
+        run: node --version
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: npx sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.login=%SONAR_TOKEN%
