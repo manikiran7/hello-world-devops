@@ -1,0 +1,60 @@
+name: Reusable Semgrep
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: [self-hosted, runner-6]
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Add Python Scripts to PATH
+        run: echo C:\Users\manikiran\AppData\Local\Programs\Python\Python313\Scripts>>%GITHUB_PATH%
+
+      - name: Check Python
+        run: python --version
+
+      - name: Check Semgrep
+        run: semgrep --version
+
+      - name: Run Semgrep
+        env:
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: "1"
+        run: |
+          semgrep scan --config auto --sarif --output semgrep-results.sarif . || exit /b 0
+
+      - name: Check SARIF
+        run: |
+          if exist semgrep-results.sarif (
+            echo SARIF file created successfully
+          ) else (
+            echo SARIF file was not created
+            exit /b 1
+          )
+
+      - name: Upload Semgrep Results
+        if: always() && hashFiles('semgrep-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep-results.sarif
+
+      - name: Upload Semgrep Artifact
+        if: always() && hashFiles('semgrep-results.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep-results.sarif
+          if-no-files-found: ignore

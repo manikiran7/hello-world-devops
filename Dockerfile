@@ -10,11 +10,10 @@ COPY --chown=node:node package*.json ./
 
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --chown=node:node server.js ./
-COPY --chown=node:node app.js ./
+COPY --chown=node:node src ./src
 
 USER node
 
 EXPOSE 3000
 
-CMD ["dumb-init", "node", "server.js"]
+CMD ["dumb-init", "node", "src/server.js"]

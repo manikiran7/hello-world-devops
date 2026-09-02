@@ -1,0 +1,31 @@
+name: Socket.dev Security Scan
+
+on:
+  workflow_call:
+    secrets:
+      SOCKET_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  socket:
+    name: Socket.dev Scan
+    runs-on: [self-hosted, runner-2]
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check Socket CLI
+        run: socket --version
+
+      - name: Socket.dev Scan
+        env:
+          SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_TOKEN }}
+        run: socket scan create . --org ${{ secrets.SOCKET_ORG }}

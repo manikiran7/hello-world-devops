@@ -9,13 +9,30 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+    inputs:
+      security_scan:
+        description: "Select security scan to run"
+        required: true
+        type: choice
+        options:
+          - sonarqube
+          - codeql
+          - trivy
+          - snyk
+          - semgrep
+          - gitleaks
+          - socket
+
 permissions:
   contents: read
+  security-events: write
 
 jobs:
 
+
   test:
-    name: Test Job
+    name: Test & Quality
     runs-on: [self-hosted, runner-1]
 
     defaults:
@@ -35,8 +52,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Unit Test
-        run: npm test
+      - name: NJSSCAN
+        run: njsscan .
 
       - name: Biome Check
         run: npm run format:check
@@ -44,236 +61,159 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-      - name: Gitleaks Scan
-        shell: cmd
-        run: gitleaks detect --source . --verbose --redact
+
+
 
   sonarqube:
-    name: SonarQube Job
+    name: SonarQube Security Scan
     needs: test
-    runs-on: [self-hosted, runner-2]
-
-    env:
-      JAVA_HOME: C:\Users\manikiran\tools\jdk-21\jdk-21.0.12.1+1
-
-    defaults:
-      run:
-        shell: cmd
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Add Java 21 to PATH
-        run: echo C:\Users\manikiran\tools\jdk-21\jdk-21.0.12.1+1\bin>>%GITHUB_PATH%
-
-      - name: Check Java
-        run: |
-          echo JAVA_HOME=%JAVA_HOME%
-          java -version
-
-      - name: Check Node.js
-        run: node --version
-
-      - name: Check npm
-        run: npm --version
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: SonarQube Scan
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: npx sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.login=%SONAR_TOKEN%
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'sonarqube'
+      )
+    uses: ./.github/workflows/sonarqube.yml
+    secrets: inherit
 
 
   codeql:
     name: CodeQL Security Scan
     needs: test
-    runs-on: [self-hosted, runner-3]
-
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: javascript-typescript
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-
-      - name: Analyze CodeQL
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: "/language:javascript-typescript"
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'codeql'
+      )
+    uses: ./.github/workflows/codeql.yml
 
 
   trivy:
     name: Trivy Security Scan
     needs: test
-    runs-on: [self-hosted, runner-4]
-
-    permissions:
-      contents: read
-      security-events: write
-
-    defaults:
-      run:
-        shell: cmd
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Add Trivy to PATH
-        run: echo C:\Users\manikiran\tools\trivy>>%GITHUB_PATH%
-
-      - name: Check Trivy
-        run: trivy --version
-
-      - name: Trivy Filesystem Scan
-        run: trivy fs . --severity HIGH,CRITICAL --format sarif --output trivy-results.sarif --exit-code 0
-
-      - name: Upload Trivy Results
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-results.sarif
-
-      - name: Upload Trivy Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-results
-          path: trivy-results.sarif
-          if-no-files-found: ignore
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'trivy'
+      )
+    uses: ./.github/workflows/trivy.yml
 
 
   snyk:
     name: Snyk Security Scan
     needs: test
-    runs-on: [self-hosted, runner-5]
-
-    permissions:
-      contents: read
-
-    defaults:
-      run:
-        shell: cmd
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Add Snyk to PATH
-        run: echo C:\Users\manikiran\AppData\Roaming\npm>>%GITHUB_PATH%
-
-      - name: Check Node.js
-        run: node --version
-
-      - name: Check npm
-        run: npm --version
-
-      - name: Check Snyk
-        run: snyk --version
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Snyk Test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk test --severity-threshold=high
-
-      - name: Snyk Monitor
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk monitor
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'snyk'
+      )
+    uses: ./.github/workflows/snyk.yml
+    secrets: inherit
 
 
   semgrep:
     name: Semgrep Security Scan
     needs: test
-    runs-on: [self-hosted, runner-6]
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'semgrep'
+      )
+    uses: ./.github/workflows/semgrep.yml
 
-    permissions:
-      contents: read
-      security-events: write
 
-    defaults:
-      run:
-        shell: cmd
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Add Python Scripts to PATH
-        run: echo C:\Users\manikiran\AppData\Local\Programs\Python\Python313\Scripts>>%GITHUB_PATH%
-
-      - name: Check Python
-        run: python --version
-
-      - name: Check Semgrep
-        run: semgrep --version
-
-      - name: Run Semgrep
-        env:
-          PYTHONIOENCODING: utf-8
-          PYTHONUTF8: "1"
-        run: |
-          semgrep scan --config auto --sarif --output semgrep-results.sarif . || exit /b 0
-
-      - name: Check SARIF
-        run: |
-          if exist semgrep-results.sarif (
-            echo SARIF file created successfully
-          ) else (
-            echo SARIF file was not created
-            exit /b 1
-          )
-
-      - name: Upload Semgrep Results
-        if: always() && hashFiles('semgrep-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: semgrep-results.sarif
-
-      - name: Upload Semgrep Artifact
-        if: always() && hashFiles('semgrep-results.sarif') != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: semgrep-results
-          path: semgrep-results.sarif
-          if-no-files-found: ignore
-
-  docker-scout:
-    name: Docker Scout Security Scan
+  gitleaks:
+    name: Gitleaks Security Scan
     needs: test
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'gitleaks'
+      )
+    uses: ./.github/workflows/gitleaks.yml
+
+
+  socket:
+    name: Socket.dev Security Scan
+    needs: test
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'socket'
+      )
+    uses: ./.github/workflows/socket.yml
+    secrets: inherit
+
+
+
+
+  summary:
+    name: CI Summary
+    needs:
+      - test
+      - sonarqube
+      - codeql
+      - trivy
+      - snyk
+      - semgrep
+      - gitleaks
+      - socket
+
+    if: always()
+
     runs-on: [self-hosted, runner-1]
 
-    permissions:
-      contents: read
-
     defaults:
       run:
         shell: cmd
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
-      - name: Check Docker
-        run: docker --version
+      - name: Generate CI Summary
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          SONAR_RESULT: ${{ needs.sonarqube.result }}
+          CODEQL_RESULT: ${{ needs.codeql.result }}
+          TRIVY_RESULT: ${{ needs.trivy.result }}
+          SNYK_RESULT: ${{ needs.snyk.result }}
+          SEMGREP_RESULT: ${{ needs.semgrep.result }}
+          GITLEAKS_RESULT: ${{ needs.gitleaks.result }}
+          SOCKET_RESULT: ${{ needs.socket.result }}
 
-      - name: Docker Build for Security Scan
-        run: docker build -t hello-world-devops:security-scan .
+        run: |
+          echo # CI Pipeline Report>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
 
-      - name: Docker Scout
-        run: docker scout cves hello-world-devops:security-scan
+          echo ## Test ^& Quality>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+          echo ^| Check ^| Result ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| NJSSCAN ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Biome ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| ESLint ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+
+          echo ## Security Scans>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+          echo ^| Security Scan ^| Result ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| SonarQube ^| %SONAR_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| CodeQL ^| %CODEQL_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Trivy ^| %TRIVY_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Snyk ^| %SNYK_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Semgrep ^| %SEMGREP_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Gitleaks ^| %GITLEAKS_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Socket.dev ^| %SOCKET_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+
+          echo ## Pipeline Status>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+          echo Test Job: %TEST_RESULT%>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+          echo Pipeline completed.>>%GITHUB_STEP_SUMMARY%
