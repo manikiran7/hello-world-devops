@@ -21,6 +21,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.11",
+		"@eslint/js": "^10.0.1",
 		"eslint": "^10.9.1",
 		"jest": "^30.4.2",
 		"supertest": "^7.2.2"
