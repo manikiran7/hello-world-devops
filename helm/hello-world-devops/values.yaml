@@ -57,4 +57,3 @@ postgres:
 
   database: hello_world
   username: app
-  password: password

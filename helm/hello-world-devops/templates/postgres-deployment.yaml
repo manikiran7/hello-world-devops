@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: {{ .Release.Name }}-postgres
   labels:
@@ -20,7 +21,9 @@ spec:
     spec:
       containers:
         - name: postgres
+
           image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+
           imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
 
           resources:
@@ -68,6 +71,7 @@ spec:
                 - sh
                 - -c
                 - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
@@ -79,6 +83,7 @@ spec:
                 - sh
                 - -c
                 - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+
             initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 3
