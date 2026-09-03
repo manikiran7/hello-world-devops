@@ -11,26 +11,26 @@ app.use(express.json());
 
 // Liveness probe
 app.get("/api/health", (_req, res) => {
-    res.json({
-        status: "ok",
-    });
+	res.json({
+		status: "ok",
+	});
 });
 
 // Readiness probe
 app.get("/api/ready", async (_req, res) => {
-    try {
-        await pool.query("SELECT 1");
+	try {
+		await pool.query("SELECT 1");
 
-        res.json({
-            status: "ready",
-        });
-    } catch (error) {
-        console.error("Database is not ready:", error);
+		res.json({
+			status: "ready",
+		});
+	} catch (error) {
+		console.error("Database is not ready:", error);
 
-        res.status(503).json({
-            status: "not ready",
-        });
-    }
+		res.status(503).json({
+			status: "not ready",
+		});
+	}
 });
 
 app.use("/api/users", userRoutes);
