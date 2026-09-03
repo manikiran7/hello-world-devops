@@ -190,7 +190,7 @@ jobs:
           echo # CI Pipeline Report>>%GITHUB_STEP_SUMMARY%
           echo.>>%GITHUB_STEP_SUMMARY%
 
-          echo ## Test ^& Quality>>%GITHUB_STEP_SUMMARY%
+          echo ## Test & Quality>>%GITHUB_STEP_SUMMARY%
           echo.>>%GITHUB_STEP_SUMMARY%
           echo ^| Check ^| Result ^|>>%GITHUB_STEP_SUMMARY%
           echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
