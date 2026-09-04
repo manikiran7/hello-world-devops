@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+
 const pool = require("./db/database");
 const userRoutes = require("./routes/users");
 
@@ -8,6 +9,13 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+const readinessLimiter = rateLimit({
+	windowMs: 60 * 1000,
+	max: 30,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
 
 // Liveness probe
 app.get("/api/health", (_req, res) => {
@@ -17,7 +25,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Readiness probe
-app.get("/api/ready", async (_req, res) => {
+app.get("/api/ready", readinessLimiter, async (_req, res) => {
 	try {
 		await pool.query("SELECT 1");
 
@@ -36,9 +44,3 @@ app.get("/api/ready", async (_req, res) => {
 app.use("/api/users", userRoutes);
 
 module.exports = app;
-const readinessLimiter = rateLimit({
-	windowMs: 60 * 1000,
-	max: 30,
-	standardHeaders: true,
-	legacyHeaders: false,
-});
