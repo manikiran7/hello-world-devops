@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-
+const rateLimit = require("express-rate-limit");
 const pool = require("./db/database");
 const userRoutes = require("./routes/users");
 
@@ -36,3 +36,9 @@ app.get("/api/ready", async (_req, res) => {
 app.use("/api/users", userRoutes);
 
 module.exports = app;
+const readinessLimiter = rateLimit({
+	windowMs: 60 * 1000,
+	max: 30,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
