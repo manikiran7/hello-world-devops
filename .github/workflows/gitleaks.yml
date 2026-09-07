@@ -24,13 +24,7 @@ steps:
     run: gitleaks version
 
   - name: Run Gitleaks
-    run: |
-      gitleaks detect ^
-        --source . ^
-        --report-format json ^
-        --report-path gitleaks-results.json ^
-        --redact ^
-        --exit-code 0
+    run: gitleaks detect --source . --report-format json --report-path gitleaks-results.json --redact --exit-code 0
 
   - name: Check Gitleaks Report
     run: |
