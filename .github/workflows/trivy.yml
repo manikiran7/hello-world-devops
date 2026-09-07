@@ -27,7 +27,16 @@ jobs:
         run: trivy --version
 
       - name: Trivy Filesystem Scan
-        run: trivy fs . --severity HIGH,CRITICAL --format sarif --output trivy-results.sarif --exit-code 0
+        run: trivy fs . --format sarif --output trivy-results.sarif --exit-code 0
+
+      - name: Check Trivy Report
+        run: |
+          if exist trivy-results.sarif (
+            echo Trivy report created successfully
+          ) else (
+            echo Trivy report was not created
+            exit /b 1
+          )
 
       - name: Upload Trivy Results
         if: always() && hashFiles('trivy-results.sarif') != ''
