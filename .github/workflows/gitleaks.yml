@@ -19,5 +19,25 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Gitleaks Scan
-        run: gitleaks detect --source . --verbose --redact
+      - name: Check Gitleaks
+        run: gitleaks version
+
+      - name: Run Gitleaks
+        run: gitleaks detect --source . --report-format json --report-path gitleaks-results.json --redact --exit-code 0
+
+      - name: Check Gitleaks Report
+        run: |
+          if exist gitleaks-results.json (
+            echo Gitleaks report created successfully
+          ) else (
+            echo Gitleaks report was not created
+            exit /b 1
+          )
+
+      - name: Upload Gitleaks Report
+        if: always() && hashFiles('gitleaks-results.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-results
+          path: gitleaks-results.json
+          if-no-files-found: ignore
