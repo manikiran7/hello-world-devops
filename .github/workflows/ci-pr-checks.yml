@@ -31,9 +31,7 @@ permissions:
 
 jobs:
 
-  # ============================================================
-  # TEST & QUALITY
-  # ============================================================
+
 
   test:
     name: Test & Quality
@@ -74,9 +72,7 @@ jobs:
         run: npm run lint
 
 
-  # ============================================================
-  # SONARQUBE
-  # ============================================================
+
 
   sonarqube:
     name: SonarQube Security Scan
@@ -109,9 +105,6 @@ jobs:
     uses: ./.github/workflows/codeql.yml
 
 
-  # ============================================================
-  # TRIVY
-  # ============================================================
 
   trivy:
     name: Trivy Security Scan
@@ -126,9 +119,7 @@ jobs:
     uses: ./.github/workflows/trivy.yml
 
 
-  # ============================================================
-  # SNYK
-  # ============================================================
+
 
   snyk:
     name: Snyk Security Scan
@@ -144,9 +135,7 @@ jobs:
     secrets: inherit
 
 
-  # ============================================================
-  # SEMGREP
-  # ============================================================
+
 
   semgrep:
     name: Semgrep Security Scan
@@ -161,9 +150,7 @@ jobs:
     uses: ./.github/workflows/semgrep.yml
 
 
-  # ============================================================
-  # GITLEAKS
-  # ============================================================
+
 
   gitleaks:
     name: Gitleaks Security Scan
@@ -178,9 +165,7 @@ jobs:
     uses: ./.github/workflows/gitleaks.yml
 
 
-  # ============================================================
-  # SOCKET.DEV
-  # ============================================================
+
 
   socket:
     name: Socket.dev Security Scan
@@ -194,92 +179,154 @@ jobs:
 
     uses: ./.github/workflows/socket.yml
     secrets: inherit
+  
+ summary:
+  name: CI Summary
 
+  needs:
+    - test
+    - sonarqube
+    - codeql
+    - trivy
+    - snyk
+    - semgrep
+    - gitleaks
+    - socket
 
-  # ============================================================
-  # CI SUMMARY
-  # ============================================================
+  if: always()
 
-  summary:
-    name: CI Summary
+  runs-on: [self-hosted, runner-1]
 
-    needs:
-      - test
-      - sonarqube
-      - codeql
-      - trivy
-      - snyk
-      - semgrep
-      - gitleaks
-      - socket
+  defaults:
+    run:
+      shell: cmd
 
-    if: always()
+  steps:
 
-    runs-on: [self-hosted, runner-1]
+    - name: Download Trivy Report
+      if: always() && needs.trivy.result != 'skipped'
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+      with:
+        name: trivy-results
+        path: reports/trivy
 
-    defaults:
-      run:
-        shell: cmd
+    - name: Parse Trivy Results
+      if: always() && needs.trivy.result != 'skipped'
+      shell: powershell
+      run: |
+        $file = "reports/trivy/trivy-results.json"
 
-    steps:
+        if (!(Test-Path $file)) {
+            Write-Host "Trivy report not found"
+            exit 0
+        }
 
-      - name: Generate CI Summary
+        $report = Get-Content $file -Raw | ConvertFrom-Json
 
-        env:
-          TEST_RESULT: ${{ needs.test.result }}
-          SONAR_RESULT: ${{ needs.sonarqube.result }}
-          CODEQL_RESULT: ${{ needs.codeql.result }}
-          TRIVY_RESULT: ${{ needs.trivy.result }}
-          SNYK_RESULT: ${{ needs.snyk.result }}
-          SEMGREP_RESULT: ${{ needs.semgrep.result }}
-          GITLEAKS_RESULT: ${{ needs.gitleaks.result }}
-          SOCKET_RESULT: ${{ needs.socket.result }}
+        $findings = @()
 
-        run: |
-          echo # CI Pipeline Security Report>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
+        foreach ($result in $report.Results) {
 
-          echo ## Build Information>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
-          echo ^| Property ^| Value ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Repository ^| %GITHUB_REPOSITORY% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Branch ^| %GITHUB_REF_NAME% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Commit ^| %GITHUB_SHA% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Build ^| #%GITHUB_RUN_NUMBER% ^|>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
+            if ($null -eq $result.Vulnerabilities) {
+                continue
+            }
 
-          echo ## Test ^& Quality>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
-          echo ^| Check ^| Result ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| NJSSCAN ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Biome ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| ESLint ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
+            foreach ($vuln in $result.Vulnerabilities) {
 
-          echo ## Security Scans>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
-          echo ^| Security Scan ^| Result ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| SonarQube ^| %SONAR_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| CodeQL ^| %CODEQL_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Trivy ^| %TRIVY_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Snyk ^| %SNYK_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Semgrep ^| %SEMGREP_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Gitleaks ^| %GITLEAKS_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Socket.dev ^| %SOCKET_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
+                $location = $result.Target
+                $line = ""
 
-          echo ## Pipeline Status>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
-          echo ^| Component ^| Result ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Test ^& Quality ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| SonarQube ^| %SONAR_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| CodeQL ^| %CODEQL_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Trivy ^| %TRIVY_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Snyk ^| %SNYK_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Semgrep ^| %SEMGREP_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Gitleaks ^| %GITLEAKS_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
-          echo ^| Socket.dev ^| %SOCKET_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+                if ($null -ne $result.Packages) {
+                    foreach ($pkg in $result.Packages) {
+
+                        if ($pkg.ID -eq $vuln.PkgID) {
+
+                            if ($null -ne $pkg.Locations) {
+                                $line = $pkg.Locations[0].StartLine
+                            }
+                        }
+                    }
+                }
+
+                $findings += [PSCustomObject]@{
+                    Severity         = $vuln.Severity
+                    VulnerabilityID  = $vuln.VulnerabilityID
+                    Package          = $vuln.PkgName
+                    InstalledVersion = $vuln.InstalledVersion
+                    FixedVersion     = $vuln.FixedVersion
+                    Target           = $location
+                    Line             = $line
+                    Title            = $vuln.Title
+                }
+            }
+        }
+
+        $findings | ConvertTo-Json -Depth 10 | Set-Content trivy-findings.json
+
+        Write-Host "Trivy findings:"
+        $findings | Format-Table -AutoSize
+
+    - name: Generate Trivy Summary
+      if: always() && needs.trivy.result != 'skipped'
+      shell: powershell
+      run: |
+        $file = "trivy-findings.json"
+
+        if (!(Test-Path $file)) {
+            exit 0
+        }
+
+        $findings = Get-Content $file -Raw | ConvertFrom-Json
+
+        if ($findings -isnot [array]) {
+            $findings = @($findings)
+        }
+
+        $critical = @($findings | Where-Object { $_.Severity -eq "CRITICAL" }).Count
+        $high     = @($findings | Where-Object { $_.Severity -eq "HIGH" }).Count
+        $medium   = @($findings | Where-Object { $_.Severity -eq "MEDIUM" }).Count
+        $low      = @($findings | Where-Object { $_.Severity -eq "LOW" }).Count
+        $unknown  = @($findings | Where-Object { $_.Severity -eq "UNKNOWN" }).Count
+        $total    = @($findings).Count
+
+        @"
+        ## Trivy Security Summary
+
+        | Severity | Count |
+        |---|---:|
+        | Critical | $critical |
+        | High | $high |
+        | Medium | $medium |
+        | Low | $low |
+        | Unknown | $unknown |
+        | **Total** | **$total** |
+
+        "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+        @"
+        ## Trivy Detailed Findings
+
+        | Severity | CVE | Package | Installed | Fixed | Target | Line | Title |
+        |---|---|---|---|---|---|---:|---|
+        "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+        foreach ($item in $findings) {
+            "| $($item.Severity) | $($item.VulnerabilityID) | $($item.Package) | $($item.InstalledVersion) | $($item.FixedVersion) | $($item.Target) | $($item.Line) | $($item.Title) |" |
+                Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+        }
+
+    - name: Generate CI Summary
+      env:
+        TEST_RESULT: ${{ needs.test.result }}
+        SONAR_RESULT: ${{ needs.sonarqube.result }}
+        CODEQL_RESULT: ${{ needs.codeql.result }}
+        TRIVY_RESULT: ${{ needs.trivy.result }}
+        SNYK_RESULT: ${{ needs.snyk.result }}
+        SEMGREP_RESULT: ${{ needs.semgrep.result }}
+        GITLEAKS_RESULT: ${{ needs.gitleaks.result }}
+        SOCKET_RESULT: ${{ needs.socket.result }}
+      run: |
+        echo # CI Pipeline Report>>%GITHUB_STEP_SUMMARY%
+
+        ...
