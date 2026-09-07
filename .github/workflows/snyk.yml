@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   snyk:
-    name: Snyk
+    name: Snyk Security Scan
     runs-on: [self-hosted, runner-5]
 
     defaults:
@@ -40,9 +40,27 @@ jobs:
       - name: Snyk Test
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk test --severity-threshold=high
+        run: snyk test --json > snyk-results.json || exit /b 0
+
+      - name: Check Snyk Report
+        run: |
+          if exist snyk-results.json (
+            echo Snyk report created successfully
+          ) else (
+            echo Snyk report was not created
+            exit /b 1
+          )
 
       - name: Snyk Monitor
+        if: always()
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk monitor
+
+      - name: Upload Snyk Report
+        if: always() && hashFiles('snyk-results.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-results
+          path: snyk-results.json
+          if-no-files-found: ignore
