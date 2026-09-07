@@ -51,9 +51,7 @@ foreach ($result in $report.Results) {
     }
 }
 
-# ==========================================
-# SEVERITY COUNTS
-# ==========================================
+
 
 $critical = @(
     $findings | Where-Object { $_.Severity -eq "CRITICAL" }
@@ -78,9 +76,7 @@ $unknown = @(
 $total = @($findings).Count
 
 
-# ==========================================
-# GITHUB STEP SUMMARY
-# ==========================================
+
 
 Add-Content $env:GITHUB_STEP_SUMMARY "## Trivy Security Summary"
 
@@ -96,9 +92,7 @@ Add-Content $env:GITHUB_STEP_SUMMARY "| Unknown | $unknown |"
 Add-Content $env:GITHUB_STEP_SUMMARY "| **Total** | **$total** |"
 
 
-# ==========================================
-# DETAILED FINDINGS
-# ==========================================
+
 
 Add-Content $env:GITHUB_STEP_SUMMARY ""
 
@@ -117,18 +111,14 @@ foreach ($item in $findings) {
 }
 
 
-# ==========================================
-# SAVE PARSED FINDINGS
-# ==========================================
+
 
 $findings |
     ConvertTo-Json -Depth 10 |
     Set-Content trivy-findings.json
 
 
-# ==========================================
-# PRINT TO LOG
-# ==========================================
+
 
 Write-Host ""
 Write-Host "Trivy Security Results"
