@@ -36,12 +36,12 @@ jobs:
         run: |
           semgrep scan --config auto --sarif --output semgrep-results.sarif . || exit /b 0
 
-      - name: Check SARIF
+      - name: Check Semgrep Report
         run: |
           if exist semgrep-results.sarif (
-            echo SARIF file created successfully
+            echo Semgrep report created successfully
           ) else (
-            echo SARIF file was not created
+            echo Semgrep report was not created
             exit /b 1
           )
 
