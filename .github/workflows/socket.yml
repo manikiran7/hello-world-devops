@@ -5,6 +5,8 @@ on:
     secrets:
       SOCKET_TOKEN:
         required: true
+      SOCKET_ORG:
+        required: true
 
 permissions:
   contents: read
@@ -22,10 +24,32 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Add Socket CLI to PATH
+        run: echo C:\Users\manikiran\AppData\Roaming\npm>>%GITHUB_PATH%
+
       - name: Check Socket CLI
         run: socket --version
 
-      - name: Socket.dev Scan
+      - name: Run Socket Scan
         env:
           SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_TOKEN }}
-        run: socket scan create . --org ${{ secrets.SOCKET_ORG }}
+        run: |
+          socket scan create . --org ${{ secrets.SOCKET_ORG }} > socket-scan-output.txt 2>&1
+          type socket-scan-output.txt
+
+      - name: Check Socket Report
+        run: |
+          if exist socket-scan-output.txt (
+            echo Socket scan output created successfully
+          ) else (
+            echo Socket scan output was not created
+            exit /b 1
+          )
+
+      - name: Upload Socket Report
+        if: always() && hashFiles('socket-scan-output.txt') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: socket-results
+          path: socket-scan-output.txt
+          if-no-files-found: ignore
