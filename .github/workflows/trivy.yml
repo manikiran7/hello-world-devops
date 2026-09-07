@@ -8,6 +8,7 @@ permissions:
   security-events: write
 
 jobs:
+
   trivy:
     name: Trivy Security Scan
     runs-on: [self-hosted, runner-4]
@@ -21,15 +22,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+
       - name: Add Trivy to PATH
         run: echo C:\Users\manikiran\tools\trivy>>%GITHUB_PATH%
+
 
       - name: Check Trivy
         run: trivy --version
 
+
       - name: Trivy Filesystem Scan
         run: |
           trivy fs . --format json --output trivy-results.json --exit-code 0
+
 
       - name: Check Trivy Report
         run: |
@@ -40,66 +45,11 @@ jobs:
             exit /b 1
           )
 
+
       - name: Generate Trivy Summary
         run: |
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-          "$file = 'trivy-results.json'; ^
-          if (!(Test-Path $file)) { ^
-              Write-Host 'Trivy report not found'; ^
-              exit 0 ^
-          }; ^
-          $report = Get-Content $file -Raw | ConvertFrom-Json; ^
-          $findings = @(); ^
-          foreach ($result in $report.Results) { ^
-              if ($null -eq $result.Vulnerabilities) { continue }; ^
-              foreach ($vuln in $result.Vulnerabilities) { ^
-                  $line = ''; ^
-                  if ($null -ne $result.Packages) { ^
-                      foreach ($pkg in $result.Packages) { ^
-                          if ($pkg.ID -eq $vuln.PkgID) { ^
-                              if ($null -ne $pkg.Locations) { ^
-                                  $line = $pkg.Locations[0].StartLine ^
-                              } ^
-                          } ^
-                      } ^
-                  }; ^
-                  $findings += [PSCustomObject]@{ ^
-                      Severity = $vuln.Severity; ^
-                      CVE = $vuln.VulnerabilityID; ^
-                      Package = $vuln.PkgName; ^
-                      InstalledVersion = $vuln.InstalledVersion; ^
-                      FixedVersion = $vuln.FixedVersion; ^
-                      Target = $result.Target; ^
-                      Line = $line; ^
-                      Title = $vuln.Title ^
-                  } ^
-              } ^
-          }; ^
-          $critical = @($findings | Where-Object Severity -eq 'CRITICAL').Count; ^
-          $high = @($findings | Where-Object Severity -eq 'HIGH').Count; ^
-          $medium = @($findings | Where-Object Severity -eq 'MEDIUM').Count; ^
-          $low = @($findings | Where-Object Severity -eq 'LOW').Count; ^
-          $unknown = @($findings | Where-Object Severity -eq 'UNKNOWN').Count; ^
-          $total = @($findings).Count; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY '## Trivy Security Summary'; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY ''; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY '| Severity | Count |'; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY '|---|---:|'; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY \"| Critical | $critical |\"; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY \"| High | $high |\"; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY \"| Medium | $medium |\"; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY \"| Low | $low |\"; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY \"| Unknown | $unknown |\"; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY \"| **Total** | **$total** |\"; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY ''; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY '## Trivy Detailed Findings'; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY ''; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY '| Severity | CVE | Package | Installed | Fixed | Target | Line | Title |'; ^
-          Add-Content $env:GITHUB_STEP_SUMMARY '|---|---|---|---|---|---|---:|---|'; ^
-          foreach ($item in $findings) { ^
-              Add-Content $env:GITHUB_STEP_SUMMARY \"| $($item.Severity) | $($item.CVE) | $($item.Package) | $($item.InstalledVersion) | $($item.FixedVersion) | $($item.Target) | $($item.Line) | $($item.Title) |\" ^
-          }; ^
-          $findings | ConvertTo-Json -Depth 10 | Set-Content trivy-findings.json"
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\parse-trivy.ps1
+
 
       - name: Upload Trivy JSON Report
         if: always() && hashFiles('trivy-results.json') != ''
@@ -108,6 +58,7 @@ jobs:
           name: trivy-results
           path: trivy-results.json
           if-no-files-found: ignore
+
 
       - name: Upload Trivy Parsed Findings
         if: always() && hashFiles('trivy-findings.json') != ''
