@@ -16,6 +16,7 @@ jobs:
 
     env:
       JAVA_HOME: C:\Users\manikiran\tools\jdk-21\jdk-21.0.12.1+1
+      SONAR_HOST_URL: http://localhost:9000
 
     defaults:
       run:
@@ -42,4 +43,30 @@ jobs:
       - name: SonarQube Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: npx sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.login=%SONAR_TOKEN%
+        run: |
+          npx sonar-scanner ^
+            -Dsonar.host.url=%SONAR_HOST_URL% ^
+            -Dsonar.login=%SONAR_TOKEN%
+
+      - name: Generate SonarQube Report
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          curl -s -u %SONAR_TOKEN%: "%SONAR_HOST_URL%/api/issues/search?componentKeys=hello-world-devops&resolved=false&ps=500" > sonarqube-results.json
+
+      - name: Check SonarQube Report
+        run: |
+          if exist sonarqube-results.json (
+            echo SonarQube report created successfully
+          ) else (
+            echo SonarQube report was not created
+            exit /b 1
+          )
+
+      - name: Upload SonarQube Report
+        if: always() && hashFiles('sonarqube-results.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarqube-results
+          path: sonarqube-results.json
+          if-no-files-found: ignore
