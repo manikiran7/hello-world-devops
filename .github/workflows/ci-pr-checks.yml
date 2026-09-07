@@ -12,10 +12,11 @@ on:
   workflow_dispatch:
     inputs:
       security_scan:
-        description: "Select security scan to run"
+        description: "Select check or security scan to run"
         required: true
         type: choice
         options:
+          - test
           - sonarqube
           - codeql
           - trivy
@@ -30,9 +31,20 @@ permissions:
 
 jobs:
 
+  # ============================================================
+  # TEST & QUALITY
+  # ============================================================
 
   test:
     name: Test & Quality
+
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.security_scan == 'test'
+      )
+
     runs-on: [self-hosted, runner-1]
 
     defaults:
@@ -62,96 +74,131 @@ jobs:
         run: npm run lint
 
 
-
+  # ============================================================
+  # SONARQUBE
+  # ============================================================
 
   sonarqube:
     name: SonarQube Security Scan
-    needs: test
+
     if: |
       github.event_name == 'pull_request' ||
       (
         github.event_name == 'workflow_dispatch' &&
         github.event.inputs.security_scan == 'sonarqube'
       )
+
     uses: ./.github/workflows/sonarqube.yml
     secrets: inherit
 
 
+  # ============================================================
+  # CODEQL
+  # ============================================================
+
   codeql:
     name: CodeQL Security Scan
-    needs: test
+
     if: |
       github.event_name == 'pull_request' ||
       (
         github.event_name == 'workflow_dispatch' &&
         github.event.inputs.security_scan == 'codeql'
       )
+
     uses: ./.github/workflows/codeql.yml
 
 
+  # ============================================================
+  # TRIVY
+  # ============================================================
+
   trivy:
     name: Trivy Security Scan
-    needs: test
+
     if: |
       github.event_name == 'pull_request' ||
       (
         github.event_name == 'workflow_dispatch' &&
         github.event.inputs.security_scan == 'trivy'
       )
+
     uses: ./.github/workflows/trivy.yml
 
 
+  # ============================================================
+  # SNYK
+  # ============================================================
+
   snyk:
     name: Snyk Security Scan
-    needs: test
+
     if: |
       github.event_name == 'pull_request' ||
       (
         github.event_name == 'workflow_dispatch' &&
         github.event.inputs.security_scan == 'snyk'
       )
+
     uses: ./.github/workflows/snyk.yml
     secrets: inherit
 
 
+  # ============================================================
+  # SEMGREP
+  # ============================================================
+
   semgrep:
     name: Semgrep Security Scan
-    needs: test
+
     if: |
       github.event_name == 'pull_request' ||
       (
         github.event_name == 'workflow_dispatch' &&
         github.event.inputs.security_scan == 'semgrep'
       )
+
     uses: ./.github/workflows/semgrep.yml
 
 
+  # ============================================================
+  # GITLEAKS
+  # ============================================================
+
   gitleaks:
     name: Gitleaks Security Scan
-    needs: test
+
     if: |
       github.event_name == 'pull_request' ||
       (
         github.event_name == 'workflow_dispatch' &&
         github.event.inputs.security_scan == 'gitleaks'
       )
+
     uses: ./.github/workflows/gitleaks.yml
 
 
+  # ============================================================
+  # SOCKET.DEV
+  # ============================================================
+
   socket:
     name: Socket.dev Security Scan
-    needs: test
+
     if: |
       github.event_name == 'pull_request' ||
       (
         github.event_name == 'workflow_dispatch' &&
         github.event.inputs.security_scan == 'socket'
       )
+
     uses: ./.github/workflows/socket.yml
     secrets: inherit
 
 
-
+  # ============================================================
+  # CI SUMMARY
+  # ============================================================
 
   summary:
     name: CI Summary
@@ -177,6 +224,7 @@ jobs:
     steps:
 
       - name: Generate CI Summary
+
         env:
           TEST_RESULT: ${{ needs.test.result }}
           SONAR_RESULT: ${{ needs.sonarqube.result }}
