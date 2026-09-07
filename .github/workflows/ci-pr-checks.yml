@@ -155,6 +155,7 @@ jobs:
 
   summary:
     name: CI Summary
+
     needs:
       - test
       - sonarqube
@@ -187,7 +188,17 @@ jobs:
           SOCKET_RESULT: ${{ needs.socket.result }}
 
         run: |
-          echo # CI Pipeline Report>>%GITHUB_STEP_SUMMARY%
+          echo # CI Pipeline Security Report>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+
+          echo ## Build Information>>%GITHUB_STEP_SUMMARY%
+          echo.>>%GITHUB_STEP_SUMMARY%
+          echo ^| Property ^| Value ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Repository ^| %GITHUB_REPOSITORY% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Branch ^| %GITHUB_REF_NAME% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Commit ^| %GITHUB_SHA% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Build ^| #%GITHUB_RUN_NUMBER% ^|>>%GITHUB_STEP_SUMMARY%
           echo.>>%GITHUB_STEP_SUMMARY%
 
           echo ## Test ^& Quality>>%GITHUB_STEP_SUMMARY%
@@ -214,6 +225,13 @@ jobs:
 
           echo ## Pipeline Status>>%GITHUB_STEP_SUMMARY%
           echo.>>%GITHUB_STEP_SUMMARY%
-          echo Test Job: %TEST_RESULT%>>%GITHUB_STEP_SUMMARY%
-          echo.>>%GITHUB_STEP_SUMMARY%
-          echo Pipeline completed.>>%GITHUB_STEP_SUMMARY%
+          echo ^| Component ^| Result ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^|---^|---^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Test ^& Quality ^| %TEST_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| SonarQube ^| %SONAR_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| CodeQL ^| %CODEQL_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Trivy ^| %TRIVY_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Snyk ^| %SNYK_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Semgrep ^| %SEMGREP_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Gitleaks ^| %GITLEAKS_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
+          echo ^| Socket.dev ^| %SOCKET_RESULT% ^|>>%GITHUB_STEP_SUMMARY%
