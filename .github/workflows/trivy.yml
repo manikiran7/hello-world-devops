@@ -17,6 +17,7 @@ jobs:
         shell: cmd
 
     steps:
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -26,11 +27,11 @@ jobs:
       - name: Check Trivy
         run: trivy --version
 
-      - name: Trivy Filesystem Scan - JSON
+      - name: Trivy Filesystem Scan
         run: |
           trivy fs . --format json --output trivy-results.json --exit-code 0
 
-      - name: Check Trivy JSON Report
+      - name: Check Trivy Report
         run: |
           if exist trivy-results.json (
             echo Trivy JSON report created successfully
@@ -39,24 +40,95 @@ jobs:
             exit /b 1
           )
 
-      - name: Trivy Filesystem Scan - SARIF
+      - name: Generate Trivy Summary
+        shell: powershell
         run: |
-          trivy fs . --format sarif --output trivy-results.sarif --exit-code 0
+          $file = "trivy-results.json"
 
-      - name: Check Trivy SARIF Report
-        run: |
-          if exist trivy-results.sarif (
-            echo Trivy SARIF report created successfully
-          ) else (
-            echo Trivy SARIF report was not created
-            exit /b 1
-          )
+          if (!(Test-Path $file)) {
+              Write-Host "Trivy report not found"
+              exit 0
+          }
 
-      - name: Upload Trivy Results to GitHub
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-results.sarif
+          $report = Get-Content $file -Raw | ConvertFrom-Json
+
+          $findings = @()
+
+          foreach ($result in $report.Results) {
+
+              if ($null -eq $result.Vulnerabilities) {
+                  continue
+              }
+
+              foreach ($vuln in $result.Vulnerabilities) {
+
+                  $line = ""
+
+                  if ($null -ne $result.Packages) {
+                      foreach ($pkg in $result.Packages) {
+
+                          if ($pkg.ID -eq $vuln.PkgID) {
+
+                              if ($null -ne $pkg.Locations) {
+                                  $line = $pkg.Locations[0].StartLine
+                              }
+
+                          }
+                      }
+                  }
+
+                  $findings += [PSCustomObject]@{
+                      Severity         = $vuln.Severity
+                      CVE              = $vuln.VulnerabilityID
+                      Package          = $vuln.PkgName
+                      InstalledVersion = $vuln.InstalledVersion
+                      FixedVersion     = $vuln.FixedVersion
+                      Target           = $result.Target
+                      Line             = $line
+                      Title            = $vuln.Title
+                  }
+              }
+          }
+
+          # Severity counts
+
+          $critical = @($findings | Where-Object Severity -eq "CRITICAL").Count
+          $high     = @($findings | Where-Object Severity -eq "HIGH").Count
+          $medium   = @($findings | Where-Object Severity -eq "MEDIUM").Count
+          $low      = @($findings | Where-Object Severity -eq "LOW").Count
+          $unknown  = @($findings | Where-Object Severity -eq "UNKNOWN").Count
+          $total    = @($findings).Count
+
+          # GitHub Summary
+
+          @"
+          ## Trivy Security Summary
+
+          | Severity | Count |
+          |---|---:|
+          | Critical | $critical |
+          | High | $high |
+          | Medium | $medium |
+          | Low | $low |
+          | Unknown | $unknown |
+          | **Total** | **$total** |
+
+          ## Trivy Detailed Findings
+
+          | Severity | CVE | Package | Installed | Fixed | Target | Line | Title |
+          |---|---|---|---|---|---|---:|---|
+          "@ | Out-File $env:GITHUB_STEP_SUMMARY -Append
+
+          foreach ($item in $findings) {
+
+              "| $($item.Severity) | $($item.CVE) | $($item.Package) | $($item.InstalledVersion) | $($item.FixedVersion) | $($item.Target) | $($item.Line) | $($item.Title) |" |
+                  Out-File $env:GITHUB_STEP_SUMMARY -Append
+          }
+
+          # Save parsed findings for later consolidated reporting
+
+          $findings | ConvertTo-Json -Depth 10 |
+              Set-Content trivy-findings.json
 
       - name: Upload Trivy JSON Report
         if: always() && hashFiles('trivy-results.json') != ''
@@ -66,10 +138,10 @@ jobs:
           path: trivy-results.json
           if-no-files-found: ignore
 
-      - name: Upload Trivy SARIF Report
-        if: always() && hashFiles('trivy-results.sarif') != ''
+      - name: Upload Trivy Parsed Findings
+        if: always() && hashFiles('trivy-findings.json') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-results-sarif
-          path: trivy-results.sarif
+          name: trivy-findings
+          path: trivy-findings.json
           if-no-files-found: ignore
