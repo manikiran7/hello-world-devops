@@ -9,7 +9,8 @@ permissions:
   contents: write
 
 env:
-  IMAGE_NAME: mkr05/hello-world-devops
+  BACKEND_IMAGE: mkr05/hello-world-devops-backend
+  FRONTEND_IMAGE: mkr05/hello-world-devops-frontend
 
 jobs:
 
@@ -22,6 +23,7 @@ jobs:
         shell: cmd
 
     steps:
+
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -36,21 +38,38 @@ jobs:
       - name: Set Image Tag
         run: echo IMAGE_TAG=%GITHUB_SHA:~0,7%>>%GITHUB_ENV%
 
-      - name: Docker Build
-        run: docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
 
-      - name: Check Docker Scout
-        run: docker scout version
 
-      - name: Docker Scout Scan
-        run: docker scout cves %IMAGE_NAME%:%IMAGE_TAG%
+      - name: Build Backend Image
+        run: docker build -t %BACKEND_IMAGE%:%IMAGE_TAG% .
 
-      - name: Docker Push
-        run: docker push %IMAGE_NAME%:%IMAGE_TAG%
+      - name: Scan Backend Image
+        run: docker scout cves %BACKEND_IMAGE%:%IMAGE_TAG%
 
-      - name: Update Helm Image Tag
+      - name: Push Backend Image
+        run: docker push %BACKEND_IMAGE%:%IMAGE_TAG%
+
+
+
+      - name: Build Frontend Image
+        run: docker build -t %FRONTEND_IMAGE%:%IMAGE_TAG% ./frontend
+
+      - name: Scan Frontend Image
+        run: docker scout cves %FRONTEND_IMAGE%:%IMAGE_TAG%
+
+      - name: Push Frontend Image
+        run: docker push %FRONTEND_IMAGE%:%IMAGE_TAG%
+
+
+
+      - name: Update Helm Image Tags
         run: |
-          powershell.exe -ExecutionPolicy Bypass -Command "$file='helm/hello-world-devops/values.yaml'; $tag=$env:IMAGE_TAG; $content=Get-Content $file -Raw; $content=$content -replace '(?m)^\s*tag:\s*.*$', ('  tag: ' + [char]34 + $tag + [char]34); [System.IO.File]::WriteAllText($file, $content)"
+          powershell.exe -ExecutionPolicy Bypass -Command ^
+          "$file='helm/hello-world-devops/values.yaml'; ^
+          $content=Get-Content $file -Raw; ^
+          $content=$content -replace '(?m)^(\s*backend:\s*\r?\n\s*image:\s*\r?\n\s*repository:.*\r?\n\s*tag:\s*)[^\r\n]+$', '${1}' + [char]34 + $env:IMAGE_TAG + [char]34; ^
+          $content=$content -replace '(?m)^(\s*frontend:\s*\r?\n\s*image:\s*\r?\n\s*repository:.*\r?\n\s*tag:\s*)[^\r\n]+$', '${1}' + [char]34 + $env:IMAGE_TAG + [char]34; ^
+          [System.IO.File]::WriteAllText($file, $content)"
 
       - name: Commit Helm Update
         run: |
@@ -59,7 +78,7 @@ jobs:
 
           git add helm/hello-world-devops/values.yaml
 
-          git commit -m "Update image tag to %IMAGE_TAG% [skip ci]" || echo No changes to commit
+          git commit -m "Update image tags to %IMAGE_TAG% [skip ci]" || echo No changes to commit
 
           git pull --rebase origin main
 

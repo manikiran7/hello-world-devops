@@ -1,11 +1,59 @@
 replicaCount: 1
 
-image:
-  repository: mkr05/hello-world-devops
-  tag: "f6bc69b"
-  pullPolicy: IfNotPresent
+backend:
+  replicaCount: 1
 
-service:
-  type: NodePort
-  port: 3000
-  targetPort: 3000
+  image:
+    repository: hello-world-backend
+    tag: "local-v2"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "250Mi"
+    limits:
+      cpu: "500m"
+      memory: "500Mi"
+
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+
+frontend:
+  replicaCount: 1
+
+  image:
+    repository: hello-world-frontend
+    tag: "local-v2"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "250Mi"
+    limits:
+      cpu: "500m"
+      memory: "500Mi"
+
+  service:
+    type: NodePort
+    port: 80
+    targetPort: 80
+
+postgres:
+  replicaCount: 1
+
+  image:
+    repository: postgres
+    tag: "17"
+    pullPolicy: IfNotPresent
+
+  serviceName: hello-world-devops-postgres
+
+  storage:
+    size: 500Mi
+
+  database: hello_world
+  username: app

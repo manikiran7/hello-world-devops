@@ -1,11 +1,13 @@
 const request = require("supertest");
-const app = require("../app");
+const app = require("../src/app");
 
-describe("GET /", () => {
-	test("should return Hello World!", async () => {
-		const response = await request(app).get("/");
+describe("GET /api/health", () => {
+	test("should return ok", async () => {
+		const response = await request(app).get("/api/health");
 
 		expect(response.statusCode).toBe(200);
-		expect(response.text).toBe("Hello World!");
+		expect(response.body).toEqual({
+			status: "ok",
+		});
 	});
 });
